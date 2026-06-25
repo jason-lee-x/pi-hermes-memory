@@ -72,7 +72,15 @@ function loadDatabaseCtor(): DatabaseCtor {
   }
 }
 
-const Database = loadDatabaseCtor();
+// 懒加载：webpack 编译阶段不触发 require('bun:sqlite')，避免构建崩溃
+let _Database: DatabaseCtor | undefined;
+
+function getDatabaseCtor(): DatabaseCtor {
+  if (!_Database) {
+    _Database = loadDatabaseCtor();
+  }
+  return _Database;
+}
 
 export class DatabaseManager {
   private db: DatabaseLike | null = null;
@@ -102,7 +110,7 @@ export class DatabaseManager {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    const db = new Database(this.dbPath);
+    const db = new (getDatabaseCtor())(this.dbPath);
 
     // Enable WAL mode + FK enforcement for each connection.
     db.exec('PRAGMA journal_mode = WAL');
